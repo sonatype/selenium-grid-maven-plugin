@@ -198,14 +198,20 @@ public class StartSeleniumGridMojo
             {
                 public void consumeLine( String line )
                 {
-                    getLog().info( line );
+                    if ( getLog().isDebugEnabled() )
+                    {
+                        getLog().info( line );
+                    }
                 }
             } );
             StreamPumper errorPumper = new StreamPumper( p.getErrorStream(), new StreamConsumer()
             {
                 public void consumeLine( String line )
                 {
-                    getLog().error( line );
+                    if ( getLog().isDebugEnabled() )
+                    {
+                        getLog().error( line );
+                    }
                 }
             } );
 
