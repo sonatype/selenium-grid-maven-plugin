@@ -195,6 +195,8 @@ public class StartSeleniumGridMojo
     {
         String cfg = IOUtil.toString( getClass().getResourceAsStream( "/cfg.template" ) );
         cfg = cfg.replace( "${hubPort}", hubPort.toString() );
+
+        testOutputDirectory.mkdirs();
         FileUtils.fileWrite( new File( testOutputDirectory, "grid_configuration.yml" ).getAbsolutePath(), cfg );
     }
 
