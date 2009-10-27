@@ -8,10 +8,12 @@ import org.sonatype.maven.plugin.seleniumgrid.util.SeleniumUtil;
 
 /**
  * @author velo
- * @goal stop-grid
- * @phase post-integration-test
  */
-public class StopSeleniumGridMojo
+/*
+ * @goal test-grid
+ * @phase integration-test
+ */
+public class TestSeleniumGridMojo
     extends AbstractMojo
 {
 
@@ -22,25 +24,33 @@ public class StopSeleniumGridMojo
      */
     private MavenSession session;
 
+    /**
+     * @parameter default-value="*firefox" expression="${selenium.environment}"
+     */
+    private String environment;
+
     public void execute()
         throws MojoExecutionException, MojoFailureException
     {
         String[] ports = session.getExecutionProperties().getProperty( "selenium-ports" ).split( "," );
         try
         {
-            for ( int i = ports.length - 1; i >= 0; i-- )
+            for ( String port : ports )
             {
-                int port = Integer.parseInt( ports[i] );
-                if ( i == 0 )
-                {
-                    SeleniumUtil.stopHub( port );
-                }
-                else
-                {
-                    SeleniumUtil.stopRC( port );
-                }
-            }
 
+                System.out.println( port );
+
+                int parseInt = Integer.parseInt( port );
+
+                System.out.println( parseInt );
+
+                String sessionId = SeleniumUtil.startBrowser( parseInt, environment );
+
+                SeleniumUtil.open( parseInt, sessionId );
+
+                SeleniumUtil.closeBrowser( parseInt, sessionId );
+
+            }
         }
         catch ( Exception e )
         {

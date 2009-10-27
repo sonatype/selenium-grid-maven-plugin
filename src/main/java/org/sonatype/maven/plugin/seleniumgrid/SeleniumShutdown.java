@@ -17,26 +17,33 @@ public class SeleniumShutdown
     public void run()
     {
         String[] ports = this.ports.split( "," );
-        for ( String port : ports )
+        for ( int i = ports.length - 1; i >= 0; i-- )
         {
-            try
+            int port = Integer.parseInt( ports[i] );
+            if ( i == 0 )
             {
-                SeleniumUtil.stopRC( new Integer( port ) );
+                try
+                {
+                    SeleniumUtil.stopHub( port );
+                }
+                catch ( Exception e )
+                {
+                    // nothing I can do at this point!
+                }
             }
-            catch ( Exception e )
+            else
             {
-                // ignore and next!
+                try
+                {
+                    SeleniumUtil.stopRC( port );
+                }
+                catch ( Exception e )
+                {
+                    // nothing I can do at this point!
+                }
             }
         }
 
-        try
-        {
-            SeleniumUtil.stopHub();
-        }
-        catch ( Exception e )
-        {
-            // nothing I can do at this point!
-        }
     }
 
 }

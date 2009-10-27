@@ -1,5 +1,6 @@
 package org.sonatype.maven.plugin.seleniumgrid;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.URL;
@@ -13,6 +14,9 @@ import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.util.FileUtils;
+import org.codehaus.plexus.util.IOUtil;
 import org.codehaus.plexus.util.cli.CommandLineException;
 import org.codehaus.plexus.util.cli.Commandline;
 import org.codehaus.plexus.util.cli.StreamConsumer;
@@ -53,6 +57,18 @@ public class StartSeleniumGridMojo
      */
     private MavenSession session;
 
+    /**
+     * @parameter expression="${project.build.testOutputDirectory}"
+     * @required
+     */
+    private File testOutputDirectory;
+
+    /**
+     * @parameter expression="${project}"
+     * @required
+     */
+    private MavenProject project;
+
     @SuppressWarnings( "unchecked" )
     public void execute()
         throws MojoExecutionException, MojoFailureException
@@ -70,6 +86,22 @@ public class StartSeleniumGridMojo
             }
         }
 
+        StringBuilder ports = new StringBuilder();
+
+        Integer hubPort = getRandomFreePort();
+
+        project.getProperties().put( "selenium.hubPort", hubPort.toString() );
+        ports.append( hubPort );
+
+        try
+        {
+            copyGridConfigurationYml( hubPort );
+        }
+        catch ( IOException e )
+        {
+            throw new MojoExecutionException( e.getMessage(), e );
+        }
+
         final Map<String, Artifact> pluginArtifactMap = ArtifactUtils.artifactMapByVersionlessId( pluginClasspath );
         Artifact hubArtifact = pluginArtifactMap.get( "org.seleniumhq.selenium.grid:selenium-grid-hub" );
         Artifact gridRcArtifact = pluginArtifactMap.get( "org.seleniumhq.selenium.grid:selenium-grid-remote-control" );
@@ -77,8 +109,12 @@ public class StartSeleniumGridMojo
 
         Commandline cmd = new Commandline();
         cmd.setExecutable( "java" );
-        cmd.createArgument().setLine( "-jar" );
-        cmd.createArgument().setLine( hubArtifact.getFile().getAbsolutePath() );
+        cmd.createArgument().setLine( "-classpath" );
+        cmd.createArgument().setLine(
+                                      testOutputDirectory.getAbsolutePath() + ";"
+                                          + hubArtifact.getFile().getAbsolutePath() );
+        cmd.createArgument().setLine( "com.thoughtworks.selenium.grid.hub.HubServer" );
+
         execute( cmd );
 
         int c = 0;
@@ -87,7 +123,7 @@ public class StartSeleniumGridMojo
             c++;
             try
             {
-                URL url = new URL( "http://localhost:4444/console" );
+                URL url = new URL( "http://localhost:" + hubPort + "/console" );
                 URLConnection conn = url.openConnection();
                 conn.getInputStream().close();
                 break;
@@ -102,14 +138,10 @@ public class StartSeleniumGridMojo
             }
         }
 
-        StringBuilder ports = new StringBuilder();
         for ( int i = 0; i < numberOfInstances; i++ )
         {
-            int port = getRandomFreePort();
-            if ( ports.length() != 0 )
-            {
-                ports.append( ',' );
-            }
+            Integer port = getRandomFreePort();
+            ports.append( ',' );
             ports.append( port );
 
             cmd = new Commandline();
@@ -122,11 +154,11 @@ public class StartSeleniumGridMojo
             cmd.createArgument().setLine(
                                           "com.thoughtworks.selenium.grid.remotecontrol.SelfRegisteringRemoteControlLauncher" );
             cmd.createArgument().setLine( "-port" );
-            cmd.createArgument().setLine( port + "" );
+            cmd.createArgument().setLine( port.toString() );
             cmd.createArgument().setLine( "-host" );
             cmd.createArgument().setLine( "localhost" );
             cmd.createArgument().setLine( "-hubURL" );
-            cmd.createArgument().setLine( "http://localhost:4444" );
+            cmd.createArgument().setLine( "http://localhost:" + hubPort );
             cmd.createArgument().setLine( "-env" );
             cmd.createArgument().setLine( environment );
             execute( cmd );
@@ -156,6 +188,14 @@ public class StartSeleniumGridMojo
         session.getExecutionProperties().put( "selenium-ports", ports.toString() );
         Runtime.getRuntime().addShutdownHook( new SeleniumShutdown( ports.toString() ) );
 
+    }
+
+    private void copyGridConfigurationYml( Integer hubPort )
+        throws IOException
+    {
+        String cfg = IOUtil.toString( getClass().getResourceAsStream( "/cfg.template" ) );
+        cfg = cfg.replace( "${hubPort}", hubPort.toString() );
+        FileUtils.fileWrite( new File( testOutputDirectory, "grid_configuration.yml" ).getAbsolutePath(), cfg );
     }
 
     private int getRandomFreePort()
