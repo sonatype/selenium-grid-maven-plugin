@@ -111,7 +111,7 @@ public class StartSeleniumGridMojo
         cmd.setExecutable( "java" );
         cmd.createArgument().setLine( "-classpath" );
         cmd.createArgument().setLine(
-                                      testOutputDirectory.getAbsolutePath() + ";"
+                                      testOutputDirectory.getAbsolutePath() + File.pathSeparator
                                           + hubArtifact.getFile().getAbsolutePath() );
         cmd.createArgument().setLine( "com.thoughtworks.selenium.grid.hub.HubServer" );
 
@@ -150,7 +150,7 @@ public class StartSeleniumGridMojo
             cmd.setWorkingDirectory( gridRcArtifact.getFile().getParentFile().getAbsolutePath() );
             cmd.createArgument().setLine( "-classpath" );
             cmd.createArgument().setLine(
-                                          rcArtifact.getFile().getAbsolutePath() + ";"
+                                          rcArtifact.getFile().getAbsolutePath() + File.pathSeparator
                                               + gridRcArtifact.getFile().getAbsolutePath() );
             cmd.createArgument().setLine(
                                           "com.thoughtworks.selenium.grid.remotecontrol.SelfRegisteringRemoteControlLauncher" );
