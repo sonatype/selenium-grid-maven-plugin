@@ -117,13 +117,14 @@ public class StartSeleniumGridMojo
 
         execute( cmd );
 
+        String hubUrl = "http://localhost:" + hubPort + "/console";
         int c = 0;
         while ( true )
         {
             c++;
             try
             {
-                URL url = new URL( "http://localhost:" + hubPort + "/console" );
+                URL url = new URL( hubUrl );
                 URLConnection conn = url.openConnection();
                 conn.getInputStream().close();
                 break;
@@ -133,7 +134,7 @@ public class StartSeleniumGridMojo
                 Thread.yield();
                 if ( c > 30 )
                 {
-                    throw new MojoExecutionException( "Failed to start grid hub!" );
+                    throw new MojoExecutionException( "Failed launch grid hub console: " + hubUrl );
                 }
             }
         }
