@@ -131,8 +131,15 @@ public class StartSeleniumGridMojo
             }
             catch ( Exception e )
             {
-                Thread.yield();
-                if ( c > 30 )
+                try
+                {
+                    Thread.sleep( 200 );
+                }
+                catch ( InterruptedException e1 )
+                {
+                    // ignore
+                }
+                if ( c > 50 )
                 {
                     throw new MojoExecutionException( "Failed launch grid hub console: " + hubUrl );
                 }
