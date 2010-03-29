@@ -9,7 +9,7 @@
 
   <groupId>org.sonatype.maven.plugin</groupId>
   <artifactId>selenium-grid-maven-plugin</artifactId>
-  <version>1.0</version>
+  <version>1.1-SNAPSHOT</version>
   <packaging>maven-plugin</packaging>
 
   <name>Maven Selenium Grid Plugin</name>
@@ -75,11 +75,4 @@
     </dependency>
 
   </dependencies>
-
-
-  <scm>
-    <connection>scm:svn:http://svn.sonatype.org/plugins/tags/selenium-grid-maven-plugin-1.0</connection>
-    <developerConnection>scm:svn:https://svn.sonatype.org/plugins/tags/selenium-grid-maven-plugin-1.0</developerConnection>
-    <url>http://svn.sonatype.org/plugins/tags/selenium-grid-maven-plugin-1.0</url>
-  </scm>
 </project>
