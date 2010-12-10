@@ -7,9 +7,6 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.sonatype.maven.plugin.seleniumgrid.util.SeleniumUtil;
 
 /**
- * @author velo
- */
-/*
  * @goal test-grid
  * @phase integration-test
  */

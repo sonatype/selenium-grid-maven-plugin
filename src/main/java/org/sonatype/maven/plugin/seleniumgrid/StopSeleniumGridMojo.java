@@ -22,6 +22,17 @@ public class StopSeleniumGridMojo
      */
     private MavenSession session;
 
+    /**
+     * @parameter default-value="true"
+     */
+    private boolean silent;
+
+    private void noise(String message) {
+        if (!this.silent) {
+            getLog().info("selenium-grid-maven-plugin: " + message);
+        }
+    }
+
     public void execute()
         throws MojoExecutionException, MojoFailureException
     {
@@ -33,10 +44,12 @@ public class StopSeleniumGridMojo
                 int port = Integer.parseInt( ports[i] );
                 if ( i == 0 )
                 {
+                    noise("stopping hub on port " + port);
                     SeleniumUtil.stopHub( port );
                 }
                 else
                 {
+                    noise("stopping remote control server on port " + port);
                     SeleniumUtil.stopRC( port );
                 }
             }

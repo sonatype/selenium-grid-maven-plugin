@@ -27,13 +27,11 @@ import org.codehaus.plexus.util.cli.StreamPumper;
  * @goal start-grid
  * @phase pre-integration-test
  */
-public class StartSeleniumGridMojo
-    extends AbstractMojo
-{
+public class StartSeleniumGridMojo extends AbstractMojo {
 
     /**
      * Plugin classpath.
-     * 
+     *
      * @parameter expression="${plugin.artifacts}"
      * @required
      * @readonly
@@ -69,217 +67,223 @@ public class StartSeleniumGridMojo
      */
     private MavenProject project;
 
-    @SuppressWarnings( "unchecked" )
-    public void execute()
-        throws MojoExecutionException, MojoFailureException
-    {
-        if ( numberOfInstances == null )
-        {
-            String processors = System.getenv( "NUMBER_OF_PROCESSORS" );
-            try
-            {
-                numberOfInstances = Integer.parseInt( processors );
-            }
-            catch ( NumberFormatException e )
-            {
+    /**
+     * @parameter default-value="true"
+     */
+    private boolean silent;
+
+    private void noise(String message) {
+        if (!this.silent) {
+            getLog().info("selenium-grid-maven-plugin: " + message);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public void execute() throws MojoExecutionException, MojoFailureException {
+        if (numberOfInstances == null) {
+            String processors = System.getenv("NUMBER_OF_PROCESSORS");
+            try {
+                numberOfInstances = Integer.parseInt(processors);
+            } catch (NumberFormatException e) {
                 numberOfInstances = 2;
             }
         }
-
+        noise("Number of remote control instances configured: "
+                + numberOfInstances);
         StringBuilder ports = new StringBuilder();
 
         Integer hubPort = getRandomFreePort();
 
-        project.getProperties().put( "selenium.hubPort", hubPort.toString() );
-        ports.append( hubPort );
+        project.getProperties().put("selenium.hubPort", hubPort.toString());
+        noise("setting project property selenium.hubport=" + hubPort.toString());
+        ports.append(hubPort);
 
-        try
-        {
-            copyGridConfigurationYml( hubPort );
-        }
-        catch ( IOException e )
-        {
-            throw new MojoExecutionException( e.getMessage(), e );
+        try {
+            copyGridConfigurationYml(hubPort);
+        } catch (IOException e) {
+            throw new MojoExecutionException(e.getMessage(), e);
         }
 
-        final Map<String, Artifact> pluginArtifactMap = ArtifactUtils.artifactMapByVersionlessId( pluginClasspath );
-        Artifact hubArtifact = pluginArtifactMap.get( "org.seleniumhq.selenium.grid:selenium-grid-hub" );
-        Artifact gridRcArtifact = pluginArtifactMap.get( "org.seleniumhq.selenium.grid:selenium-grid-remote-control" );
-        Artifact rcArtifact = pluginArtifactMap.get( "org.seleniumhq.selenium.server:selenium-server" );
+        final Map<String, Artifact> pluginArtifactMap = ArtifactUtils
+                .artifactMapByVersionlessId(pluginClasspath);
+        Artifact hubArtifact = pluginArtifactMap
+                .get("org.seleniumhq.selenium.grid:selenium-grid-hub");
+        Artifact rcGridArtifact = pluginArtifactMap
+                .get("org.seleniumhq.selenium.grid:selenium-grid-remote-control");
+        // use WebDriver if it is on the classpath
+        Artifact rcArtifact = pluginArtifactMap
+                .get("org.seleniumhq.selenium:selenium-server");
+        if (rcArtifact == null) {
+            // fallback to Selenium 1.x
+            rcArtifact = pluginArtifactMap
+                    .get("org.seleniumhq.selenium.server:selenium-server");
+        }
+        if (rcArtifact == null) {
+            throw new MojoFailureException(
+                    "Missing selenium-server standalone dependency. "
+                            + "Please add a selenium-server standalone implementation to this plugin's dependency list.");
+        }
 
+        noise("Using " + rcArtifact.getGroupId() + ":"
+                + rcArtifact.getArtifactId()
+                + " artifact to launch remote control servers.");
+
+        // start a hub instance
         Commandline cmd = new Commandline();
-        cmd.setExecutable( "java" );
-        cmd.createArgument().setLine( "-classpath" );
+        cmd.setExecutable("java");
+        cmd.createArgument().setLine("-classpath");
         cmd.createArgument().setLine(
-                                      testOutputDirectory.getAbsolutePath() + File.pathSeparator
-                                          + hubArtifact.getFile().getAbsolutePath() );
-        cmd.createArgument().setLine( "com.thoughtworks.selenium.grid.hub.HubServer" );
-
-        execute( cmd );
-
+                testOutputDirectory.getAbsolutePath() + File.pathSeparator
+                        + hubArtifact.getFile().getAbsolutePath());
+        cmd.createArgument().setLine(
+                "com.thoughtworks.selenium.grid.hub.HubServer");
         String hubUrl = "http://localhost:" + hubPort + "/console";
+        noise("starting selenium hub server at " + hubUrl);
+        execute(cmd);
+
         int c = 0;
-        while ( true )
-        {
+        while (true) {
             c++;
-            try
-            {
-                URL url = new URL( hubUrl );
+            try {
+                URL url = new URL(hubUrl);
                 URLConnection conn = url.openConnection();
                 conn.getInputStream().close();
                 break;
-            }
-            catch ( Exception e )
-            {
-                try
-                {
-                    Thread.sleep( 200 );
-                }
-                catch ( InterruptedException e1 )
-                {
+            } catch (Exception e) {
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException e1) {
                     // ignore
                 }
-                if ( c > 50 )
-                {
-                    throw new MojoExecutionException( "Failed launch grid hub console: " + hubUrl );
+                if (c > 50) {
+                    throw new MojoExecutionException(
+                            "Failed launch grid hub console: " + hubUrl);
                 }
             }
         }
+        noise("selenium hub server start complete.");
 
-        for ( int i = 0; i < numberOfInstances; i++ )
-        {
+        // start remote controls
+        for (int i = 0; i < numberOfInstances; i++) {
             Integer port = getRandomFreePort();
-            ports.append( ',' );
-            ports.append( port );
+            ports.append(',');
+            ports.append(port);
 
             cmd = new Commandline();
-            cmd.setExecutable( "java" );
-            cmd.setWorkingDirectory( gridRcArtifact.getFile().getParentFile().getAbsolutePath() );
-            cmd.createArgument().setLine( "-classpath" );
+            cmd.setExecutable("java");
+            cmd.setWorkingDirectory(rcGridArtifact.getFile().getParentFile()
+                    .getAbsolutePath());
+            cmd.createArgument().setLine("-classpath");
             cmd.createArgument().setLine(
-                                          rcArtifact.getFile().getAbsolutePath() + File.pathSeparator
-                                              + gridRcArtifact.getFile().getAbsolutePath() );
-            cmd.createArgument().setLine(
-                                          "com.thoughtworks.selenium.grid.remotecontrol.SelfRegisteringRemoteControlLauncher" );
-            cmd.createArgument().setLine( "-port" );
-            cmd.createArgument().setLine( port.toString() );
-            cmd.createArgument().setLine( "-host" );
-            cmd.createArgument().setLine( "localhost" );
-            cmd.createArgument().setLine( "-hubURL" );
-            cmd.createArgument().setLine( "http://localhost:" + hubPort );
-            cmd.createArgument().setLine( "-env" );
-            cmd.createArgument().setLine( environment );
-            execute( cmd );
+                    rcArtifact.getFile().getAbsolutePath() + File.pathSeparator
+                            + rcGridArtifact.getFile().getAbsolutePath());
+            cmd.createArgument()
+                    .setLine(
+                            "com.thoughtworks.selenium.grid.remotecontrol.SelfRegisteringRemoteControlLauncher");
+            cmd.createArgument().setLine("-port");
+            cmd.createArgument().setLine(port.toString());
+            cmd.createArgument().setLine("-host");
+            cmd.createArgument().setLine("localhost");
+            cmd.createArgument().setLine("-hubURL");
+            cmd.createArgument().setLine("http://localhost:" + hubPort);
+            cmd.createArgument().setLine("-env");
+            cmd.createArgument().setLine(environment);
+            noise("selenium remote control server on port " + port.toString()
+                    + " starting");
+            execute(cmd);
 
             c = 0;
-            while ( true )
-            {
-                try
-                {
+            while (true) {
+                try {
                     c++;
-                    URL url = new URL( "http://localhost:" + port + "/selenium-server/driver/?cmd=status" );
+
+                    URL url = new URL("http://localhost:" + port
+                            + "/selenium-server/driver/?cmd=status");
+                    noise("testing selenium remote control server at "
+                            + url.toString());
                     URLConnection conn = url.openConnection();
                     conn.getInputStream().close();
+                    noise("selenium remote control server on port "
+                            + port.toString() + " started");
                     break;
-                }
-                catch ( Exception e )
-                {
-                    try
-                    {
-                        Thread.sleep( 200 );
-                    }
-                    catch ( InterruptedException e1 )
-                    {
+                } catch (Exception e) {
+                    try {
+                        Thread.sleep(200);
+                    } catch (InterruptedException e1) {
                         // ignore
                     }
-                    if ( c > 50 )
-                    {
-                        throw new MojoExecutionException( "Failed launch grid hub console: " + hubUrl );
+                    if (c > 50) {
+                        throw new MojoExecutionException(
+                                "Failed launch grid hub console: " + hubUrl);
                     }
                 }
             }
         }
 
-        session.getExecutionProperties().put( "selenium-ports", ports.toString() );
-        Runtime.getRuntime().addShutdownHook( new SeleniumShutdown( ports.toString() ) );
+        noise("setting maven session execution property selenium-ports to: "
+                + ports.toString());
+        session.getExecutionProperties()
+                .put("selenium-ports", ports.toString());
+        Runtime.getRuntime().addShutdownHook(
+                new SeleniumShutdown(ports.toString()));
 
     }
 
-    private void copyGridConfigurationYml( Integer hubPort )
-        throws IOException
-    {
-        String cfg = IOUtil.toString( getClass().getResourceAsStream( "/cfg.template" ) );
-        cfg = cfg.replace( "${hubPort}", hubPort.toString() );
+    private void copyGridConfigurationYml(Integer hubPort) throws IOException {
+        String cfg = IOUtil.toString(getClass().getResourceAsStream(
+                "/cfg.template"));
+        cfg = cfg.replace("${hubPort}", hubPort.toString());
 
         testOutputDirectory.mkdirs();
-        FileUtils.fileWrite( new File( testOutputDirectory, "grid_configuration.yml" ).getAbsolutePath(), cfg );
+        FileUtils.fileWrite(new File(testOutputDirectory,
+                "grid_configuration.yml").getAbsolutePath(), cfg);
     }
 
-    private int getRandomFreePort()
-        throws MojoExecutionException
-    {
+    private int getRandomFreePort() throws MojoExecutionException {
         ServerSocket ss = null;
-        try
-        {
-            ss = new ServerSocket( 0 );
+        try {
+            ss = new ServerSocket(0);
             return ss.getLocalPort();
-        }
-        catch ( IOException e )
-        {
-            throw new MojoExecutionException( e.getMessage(), e );
-        }
-        finally
-        {
-            if ( ss != null )
-            {
-                try
-                {
+        } catch (IOException e) {
+            throw new MojoExecutionException(e.getMessage(), e);
+        } finally {
+            if (ss != null) {
+                try {
                     ss.close();
-                }
-                catch ( IOException e )
-                {
+                } catch (IOException e) {
                     // just closing
                 }
             }
         }
     }
 
-    private void execute( Commandline cmd )
-        throws MojoExecutionException
-    {
-        try
-        {
+    private void execute(Commandline cmd) throws MojoExecutionException {
+        try {
             Process p = cmd.execute();
 
-            StreamPumper outputPumper = new StreamPumper( p.getInputStream(), new StreamConsumer()
-            {
-                public void consumeLine( String line )
-                {
-                    if ( getLog().isDebugEnabled() )
-                    {
-                        getLog().info( line );
-                    }
-                }
-            } );
-            StreamPumper errorPumper = new StreamPumper( p.getErrorStream(), new StreamConsumer()
-            {
-                public void consumeLine( String line )
-                {
-                    if ( getLog().isDebugEnabled() )
-                    {
-                        getLog().error( line );
-                    }
-                }
-            } );
+            StreamPumper outputPumper = new StreamPumper(p.getInputStream(),
+                    new StreamConsumer() {
+                        public void consumeLine(String line) {
+                            if (getLog().isDebugEnabled()) {
+                                getLog().info(line);
+                            }
+                        }
+                    });
+            StreamPumper errorPumper = new StreamPumper(p.getErrorStream(),
+                    new StreamConsumer() {
+                        public void consumeLine(String line) {
+                            if (getLog().isDebugEnabled()) {
+                                getLog().error(line);
+                            }
+                        }
+                    });
 
             outputPumper.start();
             errorPumper.start();
 
             Thread.yield();
-        }
-        catch ( CommandLineException e )
-        {
-            throw new MojoExecutionException( e.getMessage(), e );
+        } catch (CommandLineException e) {
+            throw new MojoExecutionException(e.getMessage(), e);
         }
     }
 }
