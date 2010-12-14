@@ -95,7 +95,7 @@ public class StartSeleniumGridMojo extends AbstractMojo {
         Integer hubPort = getRandomFreePort();
 
         project.getProperties().put("selenium.hubPort", hubPort.toString());
-        noise("setting project property selenium.hubport=" + hubPort.toString());
+        noise("setting project property selenium.hubPort=" + hubPort.toString());
         ports.append(hubPort);
 
         try {
