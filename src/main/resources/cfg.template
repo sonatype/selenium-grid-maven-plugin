@@ -11,6 +11,12 @@ hub:
          browser: "*iehta"
        - name:    "Safari on OS X"
          browser: "*safari"
+       - name:    "Chrome on OS X"
+         browser: "*chrome"
+       - name:    "Chrome on Windows"
+         browser: "*chrome"
+       - name:    "Chrome on Linux"
+         browser: "*chrome"
 
        - name:    "*firefox"
          browser: "*firefox"

@@ -1,7 +1,6 @@
 package org.sonatype.maven.plugin.seleniumgrid;
 
-import org.apache.maven.execution.MavenSession;
-import org.apache.maven.plugin.AbstractMojo;
+import java.util.List;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.sonatype.maven.plugin.seleniumgrid.util.SeleniumUtil;
@@ -12,33 +11,18 @@ import org.sonatype.maven.plugin.seleniumgrid.util.SeleniumUtil;
  * @phase post-integration-test
  */
 public class StopSeleniumGridMojo
-    extends AbstractMojo
+    extends AbstractSeleniumGridMojo
 {
-
-    /**
-     * @parameter default-value="${session}"
-     * @required
-     * @readonly
-     */
-    private MavenSession session;
-
-    /**
-     * @parameter default-value="true"
-     */
-    private boolean silent;
-
-    private void noise(String message) {
-        if (!this.silent) {
-            getLog().info("selenium-grid-maven-plugin: " + message);
-        }
-    }
 
     public void execute()
         throws MojoExecutionException, MojoFailureException
     {
-        String[] ports = session.getExecutionProperties().getProperty( "selenium-ports" ).split( "," );
+
+        List<String> portList = verifyPortsList();
+        String[] ports = portList.toArray(new String[]{});
         try
         {
+            // process in reverse so that hub is stopped last
             for ( int i = ports.length - 1; i >= 0; i-- )
             {
                 int port = Integer.parseInt( ports[i] );
