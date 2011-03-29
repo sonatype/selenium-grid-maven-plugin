@@ -1,3 +1,4 @@
+
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
@@ -68,16 +69,6 @@
       <scope>runtime</scope>
     </dependency>
 
-    <!-- Selenium 1.x remote control server -->
-    <dependency>
-      <groupId>org.seleniumhq.selenium.server</groupId>
-      <artifactId>selenium-server</artifactId>
-      <version>1.0.3.grid</version>
-      <classifier>standalone</classifier>
-      <optional>true</optional>
-      <scope>runtime</scope>
-    </dependency>
-
     <!-- =============== -->
     <!-- just goes on client -->
     <dependency>
@@ -100,18 +91,42 @@
   <profiles>
     <!-- activate this to test webdriver compatibility -->
     <profile>
-        <id>webdriver</id>
-          <dependencies>
+      <id>webdriver</id>
+      <activation>
+        <property>
+          <name>webdriver</name>
+          <value>true</value>
+        </property>
+      </activation>
+      <dependencies>
             <!--  WebDriver Selenium 2.x remote control server -->
-            <dependency>
-              <groupId>org.seleniumhq.selenium</groupId>
-              <artifactId>selenium-server</artifactId>
-              <version>2.0a7</version>
-              <classifier>standalone</classifier>
-              <optional>true</optional>
-              <scope>runtime</scope>
-            </dependency>
-          </dependencies>
-        </profile>
+        <dependency>
+          <groupId>org.seleniumhq.selenium</groupId>
+          <artifactId>selenium-server-standalone</artifactId>
+          <version>2.0b3</version>
+          <scope>runtime</scope>
+        </dependency>
+      </dependencies>
+    </profile>
+
+    <profile>
+      <id>selenium1x</id>
+      <activation>
+        <property>
+          <name>!webdriver</name>
+        </property>
+      </activation>
+      <dependencies>
+            <!-- Selenium 1.x remote control server -->
+        <dependency>
+          <groupId>org.seleniumhq.selenium.server</groupId>
+          <artifactId>selenium-server</artifactId>
+          <version>1.0.3.grid</version>
+          <classifier>standalone</classifier>
+          <optional>true</optional>
+          <scope>runtime</scope>
+        </dependency>
+      </dependencies>
+    </profile>
   </profiles>
 </project>

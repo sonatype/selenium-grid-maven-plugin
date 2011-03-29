@@ -39,7 +39,7 @@ public class StartSeleniumGridMojo extends AbstractSeleniumGridMojo {
 
     protected static final String SELENIUM_1_GA = "org.seleniumhq.selenium.server:selenium-server";
 
-    protected static final String WEBDRIVER_GA = "org.seleniumhq.selenium:selenium-server";
+    protected static final String WEBDRIVER_GA = "org.seleniumhq.selenium:selenium-server-standalone";
 
     protected static final String HUB_SERVER_MAIN = "com.thoughtworks.selenium.grid.hub.HubServer";
 
@@ -134,7 +134,7 @@ public class StartSeleniumGridMojo extends AbstractSeleniumGridMojo {
         Artifact rcArtifact = pluginArtifactMap.get(WEBDRIVER_GA);
         if (rcArtifact == null) {
             // fallback to Selenium 1.x
-            rcArtifact = pluginArtifactMap.get(SELENIUM_1_GA);
+           rcArtifact = pluginArtifactMap.get(SELENIUM_1_GA);
         }
         if (rcArtifact == null) {
             String ls = System.getProperty("line.separator");
@@ -229,11 +229,11 @@ public class StartSeleniumGridMojo extends AbstractSeleniumGridMojo {
                     break;
                 } catch (Exception e) {
                     try {
-                        Thread.sleep(200);
+                        Thread.sleep(400);
                     } catch (InterruptedException e1) {
                         // ignore
                     }
-                    if (c > 50) {
+                    if (c > 25) {
                         throw new MojoExecutionException(
                                 "Failed launch grid hub console: " + hubUrl);
                     }
