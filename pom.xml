@@ -20,6 +20,13 @@
     <maven>2.0.9</maven>
   </prerequisites>
 
+  <scm>
+        <connection>scm:svn:http://svn.sonatype.org/plugins/trunk/selenium-grid-maven-plugin</connection>
+        <url>http://svn.sonatype.org/plugins/trunk/selenium-grid-maven-plugin</url>
+        <developerConnection>scm:svn:https://svn.sonatype.org/plugins/trunk/selenium-grid-maven-plugin</developerConnection>
+    </scm>
+
+
   <build>
     <plugins>
       <plugin>
